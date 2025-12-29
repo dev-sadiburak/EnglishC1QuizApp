@@ -3,16 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    RefreshControl,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  FlatList,
+  RefreshControl,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { useLanguage } from '../context/LanguageContext';
 import { StatsState, WordStatsMap } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -22,6 +23,7 @@ export default function StatsScreen() {
   const [generalStats, setGeneralStats] = useState<StatsState>({ correct: 0, wrong: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'weak' | 'strong'>('weak'); // Tab State'i
+  const { t } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -33,7 +35,7 @@ export default function StatsScreen() {
     try {
       const storedWordStats = await AsyncStorage.getItem('word_stats');
       const storedGenStats = await AsyncStorage.getItem('user_stats');
-      
+
       if (storedWordStats) setWordStats(JSON.parse(storedWordStats));
       if (storedGenStats) setGeneralStats(JSON.parse(storedGenStats));
     } catch (e) {
@@ -66,33 +68,33 @@ export default function StatsScreen() {
     // 2. Listeler
     // Zayıflar: Başarısı %60 altı olanlar
     const weakList = rawData
-        .filter(w => w.rate < 60)
-        .sort((a, b) => a.rate - b.rate); // En kötü en üstte
+      .filter(w => w.rate < 60)
+      .sort((a, b) => a.rate - b.rate); // En kötü en üstte
 
     // Güçlüler: Başarısı %85 üzeri VE En az 3 kere çözülmüş (Confidence Interval mantığı)
     const strongList = rawData
-        .filter(w => w.rate >= 85 && w.total >= 3)
-        .sort((a, b) => b.total - a.total); // En çok çözülen en üstte (Tecrübe)
+      .filter(w => w.rate >= 85 && w.total >= 3)
+      .sort((a, b) => b.total - a.total); // En çok çözülen en üstte (Tecrübe)
 
-    return { 
-        weakList, 
-        strongList, 
-        distribution: { 
-            red: (redZone / totalCount) * 100,
-            yellow: (yellowZone / totalCount) * 100,
-            green: (greenZone / totalCount) * 100
-        },
-        totalCount
+    return {
+      weakList,
+      strongList,
+      distribution: {
+        red: (redZone / totalCount) * 100,
+        yellow: (yellowZone / totalCount) * 100,
+        green: (greenZone / totalCount) * 100
+      },
+      totalCount
     };
   };
 
   const { weakList, strongList, distribution, totalCount } = analyzeData();
-  
+
   // Listeyi Tab'a göre seç
   const currentList = activeTab === 'weak' ? weakList : strongList;
-  const generalAccuracy = (generalStats.correct + generalStats.wrong) > 0 
-      ? Math.round((generalStats.correct / (generalStats.correct + generalStats.wrong)) * 100) 
-      : 0;
+  const generalAccuracy = (generalStats.correct + generalStats.wrong) > 0
+    ? Math.round((generalStats.correct / (generalStats.correct + generalStats.wrong)) * 100)
+    : 0;
 
 
   // --- BİLEŞENLER ---
@@ -100,17 +102,17 @@ export default function StatsScreen() {
   // Distribution Bar (Veri Görselleştirme)
   const DistributionBar = () => (
     <View style={styles.distContainer}>
-        <Text style={styles.distTitle}>Veri Dağılımı ({totalCount} Kelime)</Text>
-        <View style={styles.distBarTrack}>
-            <View style={{ ...styles.distSegment, backgroundColor: '#e74c3c', width: `${distribution.red}%` }} />
-            <View style={{ ...styles.distSegment, backgroundColor: '#f1c40f', width: `${distribution.yellow}%` }} />
-            <View style={{ ...styles.distSegment, backgroundColor: '#27ae60', width: `${distribution.green}%` }} />
-        </View>
-        <View style={styles.distLegend}>
-            <Text style={styles.legendText}><View style={[styles.dot, {backgroundColor:'#e74c3c'}]} /> Kritik (%{distribution.red.toFixed(0)})</Text>
-            <Text style={styles.legendText}><View style={[styles.dot, {backgroundColor:'#f1c40f'}]} /> Gelişiyor (%{distribution.yellow.toFixed(0)})</Text>
-            <Text style={styles.legendText}><View style={[styles.dot, {backgroundColor:'#27ae60'}]} /> Mastered (%{distribution.green.toFixed(0)})</Text>
-        </View>
+      <Text style={styles.distTitle}>{t('data_distribution', { count: totalCount })}</Text>
+      <View style={styles.distBarTrack}>
+        <View style={{ ...styles.distSegment, backgroundColor: '#e74c3c', width: `${distribution.red}%` }} />
+        <View style={{ ...styles.distSegment, backgroundColor: '#f1c40f', width: `${distribution.yellow}%` }} />
+        <View style={{ ...styles.distSegment, backgroundColor: '#27ae60', width: `${distribution.green}%` }} />
+      </View>
+      <View style={styles.distLegend}>
+        <Text style={styles.legendText}><View style={[styles.dot, { backgroundColor: '#e74c3c' }]} /> {t('critical_zone', { rate: distribution.red.toFixed(0) })}</Text>
+        <Text style={styles.legendText}><View style={[styles.dot, { backgroundColor: '#f1c40f' }]} /> {t('developing_zone', { rate: distribution.yellow.toFixed(0) })}</Text>
+        <Text style={styles.legendText}><View style={[styles.dot, { backgroundColor: '#27ae60' }]} /> {t('mastered_zone', { rate: distribution.green.toFixed(0) })}</Text>
+      </View>
     </View>
   );
 
@@ -118,9 +120,9 @@ export default function StatsScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Veri Analizi</Text>
+        <Text style={styles.headerTitle}>{t('data_analysis')}</Text>
         <View style={styles.badge}>
-             <Text style={styles.badgeText}>Genel Doğruluk: %{generalAccuracy}</Text>
+          <Text style={styles.badgeText}>{t('general_accuracy', { rate: generalAccuracy })}</Text>
         </View>
       </View>
 
@@ -129,40 +131,40 @@ export default function StatsScreen() {
         keyExtractor={item => item.word}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListHeaderComponent={
-            <>
-                {/* Üst Kısım: Dağılım Grafiği */}
-                <DistributionBar />
+          <>
+            {/* Üst Kısım: Dağılım Grafiği */}
+            <DistributionBar />
 
-                {/* Tab Seçici (Segmented Control) */}
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity 
-                        style={[styles.tabButton, activeTab === 'weak' && styles.activeTabRed]} 
-                        onPress={() => setActiveTab('weak')}
-                    >
-                        <Ionicons name="alert-circle" size={18} color={activeTab === 'weak' ? '#fff' : '#e74c3c'} />
-                        <Text style={[styles.tabText, activeTab === 'weak' && styles.activeTabText]}>
-                            Kritik ({weakList.length})
-                        </Text>
-                    </TouchableOpacity>
+            {/* Tab Seçici (Segmented Control) */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === 'weak' && styles.activeTabRed]}
+                onPress={() => setActiveTab('weak')}
+              >
+                <Ionicons name="alert-circle" size={18} color={activeTab === 'weak' ? '#fff' : '#e74c3c'} />
+                <Text style={[styles.tabText, activeTab === 'weak' && styles.activeTabText]}>
+                  {t('critical_tab', { count: weakList.length })}
+                </Text>
+              </TouchableOpacity>
 
-                    <TouchableOpacity 
-                        style={[styles.tabButton, activeTab === 'strong' && styles.activeTabGreen]} 
-                        onPress={() => setActiveTab('strong')}
-                    >
-                        <Ionicons name="shield-checkmark" size={18} color={activeTab === 'strong' ? '#fff' : '#27ae60'} />
-                        <Text style={[styles.tabText, activeTab === 'strong' && styles.activeTabText]}>
-                            Mastered ({strongList.length})
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === 'strong' && styles.activeTabGreen]}
+                onPress={() => setActiveTab('strong')}
+              >
+                <Ionicons name="shield-checkmark" size={18} color={activeTab === 'strong' ? '#fff' : '#27ae60'} />
+                <Text style={[styles.tabText, activeTab === 'strong' && styles.activeTabText]}>
+                  {t('mastered_tab', { count: strongList.length })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
         }
         ListEmptyComponent={
-            <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>
-                    {activeTab === 'weak' ? "Harika! Kritik kelimen yok." : "Henüz ustalaştığın kelime yok."}
-                </Text>
-            </View>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>
+              {activeTab === 'weak' ? t('empty_weak') : t('empty_strong')}
+            </Text>
+          </View>
         }
         renderItem={({ item }) => (
           <View style={styles.wordRow}>
@@ -170,17 +172,17 @@ export default function StatsScreen() {
               <Text style={styles.wordText}>{item.word}</Text>
               {/* Detaylı Mühendis Verisi: 3/5 gibi net rakamlar */}
               <Text style={styles.statDetail}>
-                  {item.correct} Doğru / {item.total} Toplam
+                {t('stats_detail', { correct: item.correct, total: item.total })}
               </Text>
             </View>
-            
+
             <View style={styles.rateBadgeContainer}>
-                 <Text style={[
-                     styles.rateBig, 
-                     { color: activeTab === 'weak' ? '#e74c3c' : '#27ae60' }
-                 ]}>
-                     %{item.rate.toFixed(0)}
-                 </Text>
+              <Text style={[
+                styles.rateBig,
+                { color: activeTab === 'weak' ? '#e74c3c' : '#27ae60' }
+              ]}>
+                %{item.rate.toFixed(0)}
+              </Text>
             </View>
           </View>
         )}
@@ -211,8 +213,8 @@ const styles = StyleSheet.create({
   distBarTrack: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', backgroundColor: '#ecf0f1' },
   distSegment: { height: '100%' },
   distLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  legendText: { fontSize: 11, color: '#555', alignItems: 'center', display: 'flex' },
-  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 4, display: 'inline-block' }, // Inline style fix for View inside Text issue logic
+  legendText: { fontSize: 11, color: '#555' },
+  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 4 }, // Inline style fix for View inside Text issue logic
 
   // Tablar
   tabContainer: { flexDirection: 'row', marginHorizontal: 15, marginBottom: 10, backgroundColor: '#e5e5e5', borderRadius: 10, padding: 4 },
@@ -239,7 +241,7 @@ const styles = StyleSheet.create({
   statDetail: { fontSize: 13, color: '#95a5a6', marginTop: 2 },
   rateBadgeContainer: { alignItems: 'flex-end' },
   rateBig: { fontSize: 18, fontWeight: 'bold' },
-  
+
   emptyState: { alignItems: 'center', marginTop: 30 },
   emptyText: { color: '#95a5a6', fontSize: 16 },
 });

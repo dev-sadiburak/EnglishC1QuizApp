@@ -2,18 +2,19 @@ import { Ionicons } from '@expo/vector-icons'; // İkonlar için
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet, Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet, Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 import { OptionButton } from '../components/OptionButton';
+import { useLanguage } from '../context/LanguageContext';
 import { CurrentQuestionState, SentencesData, StatsState, WordItem, WordStatsMap } from '../types';
 
 const wordsData = require('../data/words.json') as WordItem[];
@@ -27,6 +28,7 @@ export default function QuizScreen() {
   const [stats, setStats] = useState<StatsState>({ correct: 0, wrong: 0 });
   const [wordStats, setWordStats] = useState<WordStatsMap>({});
   const [feedbackImage, setFeedbackImage] = useState<'correct' | 'wrong' | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadStatsAndStart();
@@ -55,16 +57,16 @@ export default function QuizScreen() {
   // --- LOGIC (Aynı kalıyor) ---
   const selectSmartWord = (): WordItem => {
     const validWords = wordsData.filter(w => sentencesData[w.word] && sentencesData[w.word].length > 0);
-    
+
     if (Math.random() < 0.3) {
-       return validWords[Math.floor(Math.random() * validWords.length)];
+      return validWords[Math.floor(Math.random() * validWords.length)];
     }
 
     const hardWords = validWords.filter(w => {
       const stat = wordStats[w.word];
-      if (!stat) return true; 
+      if (!stat) return true;
       const successRate = stat.total > 0 ? (stat.correct / stat.total) : 0;
-      return successRate < 0.60; 
+      return successRate < 0.60;
     });
 
     const pool = hardWords.length > 0 ? hardWords : validWords;
@@ -72,33 +74,33 @@ export default function QuizScreen() {
   };
 
   const generateNewQuestion = () => {
-    setFeedbackImage(null); 
+    setFeedbackImage(null);
     setSelectedOption(null);
 
     let randomWordObj: WordItem;
     try {
-        randomWordObj = selectSmartWord();
+      randomWordObj = selectSmartWord();
     } catch (e) {
-        Alert.alert("Hata", "Kelime seçilemedi.");
-        return;
+      Alert.alert(t('error'), t('word_select_error'));
+      return;
     }
 
     const wordKey = randomWordObj.word;
     const targetType = randomWordObj.type;
     const sentencesList = sentencesData[wordKey];
-    
+
     if (!sentencesList || sentencesList.length === 0) {
-        generateNewQuestion();
-        return;
+      generateNewQuestion();
+      return;
     }
 
     const randomSentenceObj = sentencesList[Math.floor(Math.random() * sentencesList.length)];
     const wrongOptions: WordItem[] = [];
     let candidatePool = wordsData;
-    
+
     if (targetType) {
-        const sameTypeWords = wordsData.filter(w => w.type === targetType && w.word !== wordKey);
-        if (sameTypeWords.length >= 4) candidatePool = sameTypeWords;
+      const sameTypeWords = wordsData.filter(w => w.type === targetType && w.word !== wordKey);
+      if (sameTypeWords.length >= 4) candidatePool = sameTypeWords;
     }
 
     let loopSafety = 0;
@@ -123,7 +125,7 @@ export default function QuizScreen() {
   };
 
   const handleOptionSelect = async (option: WordItem) => {
-    if (selectedOption) return; 
+    if (selectedOption) return;
 
     setSelectedOption(option);
     const isCorrect = option.isCorrect === true;
@@ -140,8 +142,8 @@ export default function QuizScreen() {
 
     const currentStat = wordStats[currentWord] || { correct: 0, total: 0 };
     const newWordStat = {
-        correct: isCorrect ? currentStat.correct + 1 : currentStat.correct,
-        total: currentStat.total + 1
+      correct: isCorrect ? currentStat.correct + 1 : currentStat.correct,
+      total: currentStat.total + 1
     };
     const newWordStats = { ...wordStats, [currentWord]: newWordStat };
     setWordStats(newWordStats);
@@ -164,7 +166,7 @@ export default function QuizScreen() {
       <Text style={styles.questionText}>
         {parts[0]}
         <Text style={[styles.filledAnswer, { color: '#27ae60' }]}>
-          {currentQuestion.answer} 
+          {currentQuestion.answer}
         </Text>
         {parts[1]}
       </Text>
@@ -187,8 +189,8 @@ export default function QuizScreen() {
       {feedbackImage && (
         <Image
           source={
-            feedbackImage === 'correct' 
-              ? require('../assets/correct.png') 
+            feedbackImage === 'correct'
+              ? require('../assets/correct.png')
               : require('../assets/false.png')
           }
           style={styles.backgroundImage}
@@ -197,27 +199,27 @@ export default function QuizScreen() {
       )}
 
       <SafeAreaView style={styles.contentContainer}>
-        
+
         {/* --- HEADER HUD (Yenilendi) --- */}
         <View style={styles.header}>
-            <View style={styles.scoreBadge}>
-                <Ionicons name="checkmark-circle" size={20} color="#27ae60" />
-                <Text style={styles.scoreText}>{stats.correct}</Text>
-            </View>
-            <View style={styles.headerTitleContainer}>
-                <Text style={styles.headerTitle}>QUIZ MODE</Text>
-            </View>
-            <View style={styles.scoreBadge}>
-                <Ionicons name="close-circle" size={20} color="#e74c3c" />
-                <Text style={styles.scoreText}>{stats.wrong}</Text>
-            </View>
+          <View style={styles.scoreBadge}>
+            <Ionicons name="checkmark-circle" size={20} color="#27ae60" />
+            <Text style={styles.scoreText}>{stats.correct}</Text>
+          </View>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{t('quiz_mode')}</Text>
+          </View>
+          <View style={styles.scoreBadge}>
+            <Ionicons name="close-circle" size={20} color="#e74c3c" />
+            <Text style={styles.scoreText}>{stats.wrong}</Text>
+          </View>
         </View>
 
         {/* --- SORU KARTI (Yenilendi) --- */}
         <View style={styles.cardContainer}>
           <View style={styles.cardHeader}>
-             <Ionicons name="help-circle-outline" size={18} color="#95a5a6" />
-             <Text style={styles.cardLabel}>Fill in the blank</Text>
+            <Ionicons name="help-circle-outline" size={18} color="#95a5a6" />
+            <Text style={styles.cardLabel}>{t('fill_blank')}</Text>
           </View>
           {renderSentence()}
         </View>
@@ -225,14 +227,14 @@ export default function QuizScreen() {
         {/* --- ŞIKLAR --- */}
         <View style={styles.optionsContainer}>
           {options.map((option, index) => (
-            <OptionButton 
-                key={index}
-                option={option}
-                isSelected={selectedOption === option}
-                isCorrect={option.isCorrect === true}
-                isAnswered={!!selectedOption}
-                onPress={() => handleOptionSelect(option)}
-                successRateText={getSuccessRateText(option.word)}
+            <OptionButton
+              key={index}
+              option={option}
+              isSelected={selectedOption === option}
+              isCorrect={option.isCorrect === true}
+              isAnswered={!!selectedOption}
+              onPress={() => handleOptionSelect(option)}
+              successRateText={getSuccessRateText(option.word)}
             />
           ))}
         </View>
@@ -240,8 +242,8 @@ export default function QuizScreen() {
         {/* --- NEXT BUTONU --- */}
         {selectedOption && (
           <TouchableOpacity style={styles.nextButton} onPress={generateNewQuestion}>
-            <Text style={styles.nextButtonText}>Next Question</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" style={{marginLeft: 8}} />
+            <Text style={styles.nextButtonText}>{t('next_question')}</Text>
+            <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
           </TouchableOpacity>
         )}
       </SafeAreaView>
@@ -264,14 +266,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24, // Sağdan soldan o güzel boşluk (padding)
     paddingTop: Platform.OS === 'android' ? 40 : 10,
-    zIndex: 1, 
+    zIndex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   // HEADER STYLES
   header: {
     flexDirection: 'row',
@@ -337,12 +339,12 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     textTransform: 'uppercase'
   },
-  questionText: { 
-    fontSize: 22, 
-    fontWeight: '600', 
-    color: '#34495e', 
-    textAlign: 'center', 
-    lineHeight: 34 
+  questionText: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#34495e',
+    textAlign: 'center',
+    lineHeight: 34
   },
   filledAnswer: {
     fontWeight: 'bold',
@@ -369,9 +371,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  nextButtonText: { 
-    color: '#fff', 
-    fontSize: 16, 
+  nextButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 0.5
   },

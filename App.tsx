@@ -1,30 +1,39 @@
-import { Ionicons } from '@expo/vector-icons'; // İkonlar için
+import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import React from 'react';
+import React, { useContext } from 'react';
 import { Platform } from 'react-native';
+import { LanguageProvider, LanguageContext } from './src/context/LanguageContext';
 
-// Ekranlarımızı import ediyoruz
 import QuizScreen from './src/screens/QuizScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import StatsScreen from './src/screens/StatsScreen';
 
 const Tab = createBottomTabNavigator();
 
-export default function App() {
+function App() {
+  return (
+    <LanguageProvider>
+      <AppNavigator />
+    </LanguageProvider>
+  );
+}
+
+function AppNavigator() {
+  const { t } = useContext(LanguageContext)!;
+
   return (
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={({ route }) => ({
-          headerShown: false, // Üstteki default header'ı gizle (Kendi tasarımımız var)
-          tabBarActiveTintColor: '#007AFF', // Seçili ikon rengi
-          tabBarInactiveTintColor: 'gray',  // Pasif ikon rengi
+          headerShown: false,
+          tabBarActiveTintColor: '#007AFF',
+          tabBarInactiveTintColor: 'gray',
           tabBarStyle: {
             backgroundColor: '#fff',
             borderTopWidth: 1,
             borderTopColor: '#e5e5e5',
-            // iOS ve Android için dinamik yükseklik ve boşluk
-            height: Platform.OS === 'ios' ? 85 : 80, 
+            height: Platform.OS === 'ios' ? 85 : 80,
             paddingBottom: Platform.OS === 'ios' ? 25 : 12,
             paddingTop: 10,
           },
@@ -32,7 +41,6 @@ export default function App() {
             fontSize: 12,
             fontWeight: '600',
           },
-          // İkon mantığı
           tabBarIcon: ({ focused, color, size }) => {
             let iconName: keyof typeof Ionicons.glyphMap;
 
@@ -43,17 +51,19 @@ export default function App() {
             } else if (route.name === 'Settings') {
               iconName = focused ? 'settings' : 'settings-outline';
             } else {
-                iconName = 'alert';
+              iconName = 'alert';
             }
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
         })}
       >
-        <Tab.Screen name="Quiz" component={QuizScreen} options={{ title: 'Soru Çöz' }} />
-        <Tab.Screen name="Stats" component={StatsScreen} options={{ title: 'İstatistik' }} />
-        <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Ayarlar' }} />
+        <Tab.Screen name="Quiz" component={QuizScreen} options={{ title: t('quiz') }} />
+        <Tab.Screen name="Stats" component={StatsScreen} options={{ title: t('stats') }} />
+        <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: t('settings') }} />
       </Tab.Navigator>
     </NavigationContainer>
   );
 }
+
+export default App;
